@@ -4,7 +4,7 @@ import httpx
 import uvicorn
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, HTMLResponse
 from starlette.routing import Route
 from urllib.parse import unquote
 from bs4 import BeautifulSoup, Tag
@@ -30,6 +30,11 @@ async def anime_schedule(request: Request):
     client: httpx.AsyncClient = request.state.http_client
 
     schedule = []
+    widget = """
+    <li>
+        <p>Hello, world!</p>
+    </li>
+    """
 
     resp = await client.get(
         "https://www.livechart.me/schedule",
@@ -104,12 +109,12 @@ async def anime_schedule(request: Request):
         
         schedule.append(week_data)
 
-    return JSONResponse(schedule)
+    return HTMLResponse(widget)
 
 
 app = Starlette(
     routes=[
-        Route("/anime", endpoint=anime_schedule)
+        Route("/anime-schedule", endpoint=anime_schedule)
     ],
     lifespan=lifespan,
 )
