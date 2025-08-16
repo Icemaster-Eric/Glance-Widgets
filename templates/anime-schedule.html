@@ -1,0 +1,27 @@
+<ul class="list list-gap-8 collapsible-container" data-collapse-after="5">
+{% if schedule %}
+{% for week in schedule %}
+{% for anime in week.anime %}
+    <li class="flex gap-15 items-start thumbnail-parent">
+        <div class="thumbnail-container">
+            <img class="thumbnail shrink" style="height: 10rem" loading="lazy" src="{{ anime.image }}">
+        </div>
+        <div style="width: 100%;">
+            <p class="size-h3 color-primary"><span style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;" title="{{ anime.title }}">{{ anime.title }}</span></p>
+            <ul class="list-horizontal-text">
+                <li>{{ anime.time }}</li>
+            {% if anime.timestamp - current_time > 0 %}
+                <li><span data-dynamic-relative-time="{{ anime.timestamp }}"></span></li>
+            {% else %}
+                <li><span data-dynamic-relative-time="{{ anime.timestamp }}"></span> ago</li>
+            {% endif %}
+            </ul>
+            <p class="color-subdue size-h5">{{ anime.episode }}</p>
+        </div>
+    </li>
+{% endfor %}
+{% endfor %}
+{% else %}
+<p>No anime today ૮(˶ㅠ︿ㅠ)ა</p>
+{% endif %}
+</ul>

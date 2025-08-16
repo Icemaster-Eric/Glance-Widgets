@@ -1,13 +1,21 @@
 import contextlib
 from typing import AsyncIterator, TypedDict
+import time
+import json
 import httpx
 import uvicorn
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import JSONResponse, HTMLResponse
+from starlette.responses import HTMLResponse, FileResponse
 from starlette.routing import Route
-from urllib.parse import unquote
+from starlette.templating import Jinja2Templates
 from bs4 import BeautifulSoup, Tag
+
+
+with open("anime_lists.json", "r") as f:
+    anime_lists: dict[str, list[str]] = json.load(f)
+
+templates = Jinja2Templates("templates")
 
 
 class State(TypedDict):
@@ -20,46 +28,44 @@ async def lifespan(app: Starlette) -> AsyncIterator[State]:
         yield {"http_client": client}
 
 
-async def anime_schedule(request: Request):
-    timezone = request.query_params.get("timezone") # IANA Time Zone
+async def test_route(request: Request):
+    timezone = request.query_params.get("timezone")  # IANA Time Zone
     if timezone is None:
         timezone = "Etc/UTC"
     else:
-        timezone = unquote(timezone)
+        timezone = timezone
+    
+    anime_list = request.query_params.get("list")
+    if anime_list is not None:
+        anime_list = anime_lists.get(anime_list)
+
+    full_list = request.query_params.get("full") == "true"
 
     client: httpx.AsyncClient = request.state.http_client
 
     schedule = []
-    widget = """
-    <li>
-        <p>Hello, world!</p>
-    </li>
-    """
 
     resp = await client.get(
         "https://www.livechart.me/schedule",
         cookies={
             "preferences": f'{{"time_zone":"{timezone}","titles":"english"}}',
-            "preferences.schedule": '{"layout":"timetable","start":"today","sort":"release_date","sort_dir":"asc","included_marks":{"completed":true,"rewatching":true,"watching":true,"planning":true,"considering":true,"paused":false,"dropped":false,"skipping":false,"unmarked":true}}'
-        }
+            "preferences.schedule": '{"layout":"timetable","start":"today","sort":"release_date","sort_dir":"asc","included_marks":{"completed":true,"rewatching":true,"watching":true,"planning":true,"considering":true,"paused":false,"dropped":false,"skipping":false,"unmarked":true}}',
+        },
     )
     soup = BeautifulSoup(resp.text, "lxml")
-    for week in soup.find_all("div", class_="lc-timetable-day"):
-        if not isinstance(week, Tag):
+    for day in soup.find_all("div", class_="lc-timetable-day"):
+        if not isinstance(day, Tag):
             continue
 
-        week_date = week.find("div", class_="lc-timetable-day__heading flex")
-        if not isinstance(week_date, Tag):
-            break # placeholder day thing
-        week_date = week_date.get_text(" ", strip=True)
+        day_date = day.find("div", class_="lc-timetable-day__heading flex")
+        if not isinstance(day_date, Tag):
+            break  # placeholder day thing
+        day_date = day_date.get_text(" ", strip=True)
 
-        week_data = {
-            "day": week_date,
-            "anime": []
-        }
+        day_data = {"day": day_date, "anime": []}
 
-        # find anime of the week
-        for anime_timeslot in week.find_all("div", class_="lc-timetable-timeslot"):
+        # find anime of the day
+        for anime_timeslot in day.find_all("div", class_="lc-timetable-timeslot"):
             if not isinstance(anime_timeslot, Tag):
                 continue
             if "hidden" in anime_timeslot.attrs["class"]:
@@ -73,12 +79,14 @@ async def anime_schedule(request: Request):
             anime_timestamp = anime_timeslot.find("time")
             if not isinstance(anime_timestamp, Tag):
                 raise ValueError("Anime missing timestamp information")
-            anime_timestamp = int(anime_timestamp.attrs["data-timestamp"]) # type: ignore
+            anime_timestamp = int(anime_timestamp.attrs["data-timestamp"])  # type: ignore
 
             # potentially multiple anime in same timeslot
-            for anime in anime_timeslot.find_all("div", class_="lc-timetable-anime-block"):
+            for anime in anime_timeslot.find_all(
+                "div", class_="lc-timetable-anime-block"
+            ):
                 if not isinstance(anime, Tag):
-                    continue # not being broadcasted due to reasons:tm: (too lazy to parse)
+                    continue  # not being broadcasted due to reasons:tm: (too lazy to parse)
 
                 anime_image = anime.find("img")
                 if not isinstance(anime_image, Tag):
@@ -99,22 +107,40 @@ async def anime_schedule(request: Request):
                     raise ValueError("Anime missing episode information")
                 anime_episode = anime_episode.get_text()
 
-                week_data["anime"].append({
-                    "title": anime_title,
-                    "episode": anime_episode,
-                    "time": anime_time,
-                    "timestamp": anime_timestamp,
-                    "image": anime_image
-                })
-        
-        schedule.append(week_data)
+                if anime_list is not None:
+                    if anime_title not in anime_list:
+                        continue
 
-    return HTMLResponse(widget)
+                day_data["anime"].append(
+                    {
+                        "title": anime_title,
+                        "episode": anime_episode,
+                        "time": anime_time,
+                        "timestamp": anime_timestamp,
+                        "image": anime_image,
+                    }
+                )
+
+        schedule.append(day_data)
+
+        if not full_list:
+            break
+
+    if not schedule[0]["anime"]:
+        schedule = []
+
+    return templates.TemplateResponse(
+        request,
+        "anime-schedule.html",
+        {"schedule": schedule, "current_time": time.time()},
+        headers={"Widget-Title": "Anime Schedule", "Widget-Content-Type": "html"},
+        media_type="text/html",
+    )
 
 
 app = Starlette(
     routes=[
-        Route("/anime-schedule", endpoint=anime_schedule)
+        Route("/anime-schedule", endpoint=test_route),
     ],
     lifespan=lifespan,
 )
