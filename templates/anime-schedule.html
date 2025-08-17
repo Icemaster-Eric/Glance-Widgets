@@ -10,11 +10,11 @@
             <p class="size-h3 color-primary"><span style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;" title="{{ anime.title }}">{{ anime.title }}</span></p>
             <ul class="list-horizontal-text">
                 <li>{{ anime.time }}</li>
-            {% if anime.timestamp - current_time > 0 %}
+                {% if anime.timestamp - current_time > 0 %}
                 <li><span data-dynamic-relative-time="{{ anime.timestamp }}"></span></li>
-            {% else %}
+                {% else %}
                 <li><span data-dynamic-relative-time="{{ anime.timestamp }}"></span> ago</li>
-            {% endif %}
+                {% endif %}
             </ul>
             <p class="color-subdue size-h5">{{ anime.episode }}</p>
         </div>

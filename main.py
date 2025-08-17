@@ -1,6 +1,7 @@
 import contextlib
 from typing import AsyncIterator, TypedDict
 import time
+from datetime import datetime
 import json
 import httpx
 import uvicorn
@@ -15,6 +16,9 @@ from bs4 import BeautifulSoup, Tag
 with open("anime_lists.json", "r") as f:
     anime_lists: dict[str, list[str]] = json.load(f)
 
+with open("calendars.json", "r") as f:
+    calendars: dict = json.load(f)
+
 templates = Jinja2Templates("templates")
 
 
@@ -28,7 +32,7 @@ async def lifespan(app: Starlette) -> AsyncIterator[State]:
         yield {"http_client": client}
 
 
-async def test_route(request: Request):
+async def anime_schedule(request: Request):
     timezone = request.query_params.get("timezone")  # IANA Time Zone
     if timezone is None:
         timezone = "Etc/UTC"
@@ -138,9 +142,39 @@ async def test_route(request: Request):
     )
 
 
+def get_calendar(request: Request):
+    calendar = request.query_params.get("calendar")
+    if calendar is None or (calendar := calendars.get(calendar)) is None:
+        return HTMLResponse("<p class='color-negative'>Error: calendar not found</p>")
+    
+    current_datetime = datetime.now()
+    current_date = {
+        "year": current_datetime.year,
+        "month": current_datetime.strftime("%B"),
+        "day": current_datetime.strftime("%A"),
+        "day_of_month": current_datetime.day
+    }
+
+    no_calendar = False
+    for month in calendar:
+        if month["month"] == current_datetime.strftime("%B"):
+            break
+    else:
+        no_calendar = True
+
+    return templates.TemplateResponse(
+        request,
+        "calendar.html",
+        {"calendar": calendar, "current_date": current_date, "int": int, "no_calendar": no_calendar},
+        headers={"Widget-Title": "Calendar", "Widget-Content-Type": "html"},
+        media_type="text/html"
+    )
+
+
 app = Starlette(
     routes=[
-        Route("/anime-schedule", endpoint=test_route),
+        Route("/anime-schedule", anime_schedule),
+        Route("/calendar", get_calendar)
     ],
     lifespan=lifespan,
 )

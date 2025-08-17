@@ -1,0 +1,63 @@
+{% for month in calendar %}
+{% if month.month == current_date.month %}
+<p class="size-h3 color-highlight">{{ month.month }} {{ month.year }}</p>
+<div style="display: grid; grid-template-columns: repeat(7, 1fr);">
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h6 color-subdue">Sun</p>
+    </div>
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h6 color-subdue">Mon</p>
+    </div>
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h6 color-subdue">Tue</p>
+    </div>
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h6 color-subdue">Wed</p>
+    </div>
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h6 color-subdue">Thu</p>
+    </div>
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h6 color-subdue">Fri</p>
+    </div>
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h6 color-subdue">Sat</p>
+    </div>
+    {% for week in month.calendar %}
+    {% for day, val in week.days.items() %}
+    {% if val is number %}
+    {% if val == current_date.day_of_month %}
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1; background-color: var(--color-widget-background-highlight); border-radius: 10px;">
+        <p class="size-h5 color-highlight">{{ val }}</p>
+    </div>
+    {% else %}
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h5">{{ val }}</p>
+    </div>
+    {% endif %}
+    {% elif val is string %}
+    {% if val[0] == "-" %}
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h5 color-subdue">{{ val[1:] }}</p>
+    </div>
+    {% else %}
+    {% if int(val.split()[0]) == current_date.day_of_month %}
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1; background-color: var(--color-widget-background-highlight); border-radius: 10px;">
+        <p class="size-h5 color-primary">{{ val.split()[-1][1:-1] }}</p>
+    </div>
+    {% else %}
+    <div class="flex flex-column justify-center items-center" style="aspect-ratio: 1;">
+        <p class="size-h5 color-primary">{{ val.split()[-1][1:-1] }}</p>
+    </div>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+</div>
+{% endif %}
+{% endfor %}
+
+{% if no_calendar %}
+<p>No calendar available this month ૮(˶ㅠ︿ㅠ)ა</p>
+{% endif %}

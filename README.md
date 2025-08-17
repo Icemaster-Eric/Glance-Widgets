@@ -16,15 +16,19 @@ An API for my own custom Glance widgets.
             timezone: Etc/UTC # IANA Time Zone
             list: my_list # filter for the anime you're interested in
             full: false # full week schedule
-        cache: 30m
+        cache: 6h
     ```
 
-- **School Calendar**
+- **Calendar**
+    Options:
+    - A
+    - B
     ```yaml
     ```
-- **School Schedule**
-    ```yaml
-    ```
+
 - **To-Do List**
+    Options:
+    - A
+    - B
     ```yaml
     ```
