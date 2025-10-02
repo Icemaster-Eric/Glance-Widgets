@@ -21,14 +21,13 @@ An API for my own custom Glance widgets.
 
 - **Calendar**
     Options:
-    - A
+    - `calendar` - name of your calendar .json file. Required (use my_calendar for default)
     - B
     ```yaml
-    ```
-
-- **To-Do List**
-    Options:
-    - A
-    - B
-    ```yaml
+    - type: extension
+        url: https://glance-widgets.hutao.rip/calendar
+        allow-potentially-dangerous-html: true
+        parameters:
+            calendar: my_calendar
+        cache: 6h
     ```
